@@ -17,3 +17,5 @@ async def prendiDomanda(q: int | None):
     if q is None:
         raise HTTPException(status_code=400, detail="Il parametro 'q' (ID domanda) è richiesto.")
     return getQuizQuestions(q)
+
+

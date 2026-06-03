@@ -18,7 +18,7 @@ REFRESH_TOKEN_EXPIRE_DAYS = 7
 
 password_hash = PasswordHash.recommended()
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 connection = psycopg2.connect(
     database="nextStepDB",
@@ -92,3 +92,9 @@ def createRefreshToken(data: dict):
 def tryRefresh(refresh_token : str):
     payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
 
+def quizCompletato(current_user: User):
+    cursor = connection.cursor(cursor_factory=RealDictCursor)
+    SQLquery = "UPDATE usersDB SET quizsolved = true WHERE username = %s;"
+    cursor.execute(SQLquery, (current_user.username,))
+    connection.commit()
+    cursor.close()

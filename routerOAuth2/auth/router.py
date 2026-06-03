@@ -3,7 +3,7 @@ from fastapi import Depends, APIRouter, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from jwt import InvalidTokenError
 from .model import Token, User
-from .utils import ACCESS_TOKEN_EXPIRE_MINUTES, authenticateUser, timedelta, createAccessToken, createRefreshToken, utenteCorrenteAttivo, tryRefresh
+from .utils import ACCESS_TOKEN_EXPIRE_MINUTES, authenticateUser, quizCompletato, timedelta, createAccessToken, createRefreshToken, utenteCorrenteAttivo, tryRefresh
 
 router = APIRouter()
 
@@ -51,3 +51,14 @@ async def readUsersMe(
 ) -> User:
     return current_user
 
+@router.get("/users/me/quiz")
+async def readUsersMe(
+    current_user: Annotated[User, Depends(utenteCorrenteAttivo)],
+) -> User:
+    return current_user.quizsolved
+
+@router.post("/quizCompletato")
+async def completatoQuiz( current_user: Annotated[User, Depends(utenteCorrenteAttivo)]):
+    quizCompletato(current_user)
+    
+    
