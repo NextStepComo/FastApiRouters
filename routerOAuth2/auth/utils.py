@@ -14,6 +14,7 @@ from routerOAuth2.auth.model import Token, TokenData, User, UserInDB
 SECRET_KEY = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
+REFRESH_TOKEN_EXPIRE_DAYS = 7
 
 password_hash = PasswordHash.recommended()
 
@@ -81,3 +82,13 @@ async def utenteCorrente(token: Annotated[str, Depends(oauth2_scheme)]) -> User:
 
 async def utenteCorrenteAttivo(current_user: Annotated[User, Depends(utenteCorrente)]) -> User:
     return current_user
+
+def createRefreshToken(data: dict):
+    return createAccessToken(
+        data, 
+        expires_delta=timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    )
+
+def tryRefresh(refresh_token : str):
+    payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
+
