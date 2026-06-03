@@ -1,4 +1,6 @@
 '''
+admin password
+
 mario_rossi@example.com → AlphaBravo2026!
 
 luca_bianchi@example.com → ProgettoSicuro#99
