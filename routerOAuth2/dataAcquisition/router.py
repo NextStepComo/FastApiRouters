@@ -1,7 +1,7 @@
 from typing import Annotated
 from fastapi import Depends, APIRouter, HTTPException, status
 from .model import QuizResponse
-from .utils import addQuizResponse, getQuizQuestions, getSchoolPositions
+from .utils import addQuizResponse, getQuizQuestions, getSchoolPositions, getSchoolPositionsNoProv
 
 router = APIRouter(
     prefix="/acquire"
