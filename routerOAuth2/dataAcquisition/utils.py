@@ -36,3 +36,11 @@ def getQuizQuestions(q_ID: int):
     q_ans = cursor.fetchone()
     cursor.close()
     return q_ans
+
+def getSchoolPositions(provincia: str):
+    cursor = connection.cursor(cursor_factory=RealDictCursor)
+    SQLquery = "SELECT DISTINCT denominazione_sede_direttivo, coory, coorx FROM scuole WHERE provincia = %s;"
+    cursor.execute(SQLquery, (provincia,))
+    ris = cursor.fetchall()
+    cursor.close()
+    return ris

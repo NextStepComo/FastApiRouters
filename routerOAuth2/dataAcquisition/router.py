@@ -1,7 +1,7 @@
 from typing import Annotated
 from fastapi import Depends, APIRouter, HTTPException, status
 from .model import QuizResponse
-from .utils import addQuizResponse, getQuizQuestions
+from .utils import addQuizResponse, getQuizQuestions, getSchoolPositions
 
 router = APIRouter(
     prefix="/acquire"
@@ -18,4 +18,8 @@ async def prendiDomanda(q: int | None):
         raise HTTPException(status_code=400, detail="Il parametro 'q' (ID domanda) è richiesto.")
     return getQuizQuestions(q)
 
-
+@router.get("/scuolePosizione")
+async def getPositions(provincia: str):
+    if provincia is None:
+        raise HTTPException(status_code=400, detail="Il parametro 'provincia' (provincia scuole da restituire) è richiesto.")
+    return getSchoolPositions(provincia)

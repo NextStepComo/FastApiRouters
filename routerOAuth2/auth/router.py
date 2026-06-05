@@ -33,9 +33,6 @@ async def registrazione(data: registrazioneUser):
     
     return addToDB(data)
 
-
-
-
 @router.post("/refresh", response_model=Token)
 async def refreshToken(refresh_token: str):
     credentials_exception = HTTPException(
@@ -87,5 +84,4 @@ async def readUsersMe(
 @router.post("/quizCompletato")
 async def completatoQuiz( current_user: Annotated[User, Depends(utenteCorrenteAttivo)]):
     quizCompletato(current_user)
-    
     
