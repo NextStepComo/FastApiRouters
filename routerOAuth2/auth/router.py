@@ -2,9 +2,8 @@ from typing import Annotated
 from fastapi import Depends, APIRouter, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from jwt import InvalidTokenError
-from .model import Token, User
-from .utils import ACCESS_TOKEN_EXPIRE_MINUTES, authenticateUser, quizCompletato, timedelta, createAccessToken, createRefreshToken, utenteCorrenteAttivo, tryRefresh
-
+from .model import Token, User, registrazioneUser
+from .utils import ACCESS_TOKEN_EXPIRE_MINUTES, authenticateUser, quizCompletato, timedelta, createAccessToken, createRefreshToken, utenteCorrenteAttivo, tryRefresh, getUserFromDB, addToDB
 router = APIRouter()
 
 @router.post("/login", response_model=Token)
@@ -22,19 +21,47 @@ async def loginAccessToken(form_data: Annotated[OAuth2PasswordRequestForm, Depen
         token_type="bearer"
     )
 
+@router.post("/register")
+async def registrazione(data: registrazioneUser):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Email già in utilizzo"
+    )    
+    user = getUserFromDB(data.username)
+    if user is not None:
+        raise credentials_exception
+    
+    return addToDB(data)
+
+
+
+
 @router.post("/refresh", response_model=Token)
 async def refreshToken(refresh_token: str):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Refresh token non valido"
     )
+    
     try:
         payload = tryRefresh(refresh_token)
-        username = payload.get("sub")
-        if username is None:
+        if payload is None:
             raise credentials_exception
+            
     except InvalidTokenError:
         raise credentials_exception
+    except Exception: 
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials / Token expired",
+        )     
+    
+    username = payload.get("sub")
+    if username is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token payload missing user identifier",
+        )
 
     access_token = createAccessToken(data={"sub": username})
     new_refresh_token = createRefreshToken(data={"sub": username})

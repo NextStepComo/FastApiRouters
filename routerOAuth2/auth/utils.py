@@ -8,8 +8,8 @@ from jwt.exceptions import InvalidTokenError
 from pwdlib import PasswordHash
 import psycopg2
 from psycopg2.extras import RealDictCursor
-
-from routerOAuth2.auth.model import Token, TokenData, User, UserInDB
+from hash_password import genera_hash
+from routerOAuth2.auth.model import Token, TokenData, User, UserInDB, registrazioneUser
 
 SECRET_KEY = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
 ALGORITHM = "HS256"
@@ -26,7 +26,24 @@ connection = psycopg2.connect(
     password="password",
     host="localhost",
     port=5432
-)
+)    
+
+def addToDB(data: registrazioneUser):
+    hashedPassword = genera_hash(data.password)
+    cursor = connection.cursor(cursor_factory=RealDictCursor)
+    SQLquery = "INSERT INTO usersDB (username, full_name, hashed_password, quizsolved, date_birth) VALUES (%s, %s, %s, %s, %s);"
+    cursor.execute(SQLquery, (data.username, data.full_name, hashedPassword, False, data.date_birth,))
+    cursor.close()
+    connection.commit()
+    access_token = createAccessToken(data={"sub": data.username})
+    refresh_token = createRefreshToken(data={"sub": data.username})
+    
+    return Token(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        token_type="bearer"
+    )
+
 
 def getUserFromDB(username: str) -> UserInDB | None:
     cursor = connection.cursor(cursor_factory=RealDictCursor)
@@ -91,6 +108,7 @@ def createRefreshToken(data: dict):
 
 def tryRefresh(refresh_token : str):
     payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
+    return payload
 
 def quizCompletato(current_user: User):
     cursor = connection.cursor(cursor_factory=RealDictCursor)

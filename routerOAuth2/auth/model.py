@@ -20,3 +20,10 @@ class User(BaseModel):
 
 class UserInDB(User):
     hashed_password: str
+
+class registrazioneUser(BaseModel):
+  username: str
+  full_name: str
+  quizsolved: bool
+  date_birth: str
+  password: str
