@@ -1,6 +1,6 @@
 from typing import Annotated
 from fastapi import Depends, APIRouter, HTTPException, status
-from .model import QuizResponse
+from .model import QuizResponse, ChatRequest
 from .utils import addQuizResponse, getQuizQuestions, getSchoolPositions, getSchoolPositionsNoProv, getAIResponse
 
 router = APIRouter(
@@ -25,5 +25,6 @@ async def getPositions(provincia: str):
     return getSchoolPositions(provincia)
 
 @router.post("/chat")
-async def chiamataAI(messaggio: str):
-    return getAIResponse(messaggio)
+async def chiamataAI(richiesta: ChatRequest):
+    print("Ricevuto:", richiesta)  # aggiungi questo
+    return getAIResponse(richiesta.inputText)
