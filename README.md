@@ -1,86 +1,95 @@
 # FastApiRouters
 
-Backend for **NextStep** — a FastAPI-based web server providing authentication, quiz management, and Italian school data APIs.
+Backend di **NextStep** — server web basato su FastAPI per autenticazione, gestione quiz e API sui dati delle scuole italiane.
 
-## Table of Contents
+## Indice
 
-- [Requirements](#requirements)
+- [Requisiti](#requisiti)
 - [Setup](#setup)
-- [Running the Server](#running-the-server)
-- [Project Structure](#project-structure)
+- [Avvio del Server](#avvio-del-server)
+- [Struttura del Progetto](#struttura-del-progetto)
 - [API Endpoints](#api-endpoints)
-  - [Authentication](#authentication)
-  - [Data Acquisition](#data-acquisition)
+  - [Autenticazione](#autenticazione)
+  - [Acquisizione Dati](#acquisizione-dati)
+  - [Chat AI](#chat-ai)
 - [Database](#database)
-- [Maintenance Scripts](#maintenance-scripts)
-- [Development](#development)
+- [Script di Manutenzione](#script-di-manutenzione)
+- [Sviluppo](#sviluppo)
 
 ---
 
-## Requirements
+## Requisiti
 
 - Python 3.10+
-- PostgreSQL database named `nextStepDB` running on `localhost:5432`
+- Database PostgreSQL `nextStepDB` su `localhost:5432`
+- Ollama con modello `gemma4:e2b` (per l'endpoint chat)
 
 ---
 
 ## Setup
 
-1. Clone the repository:
+1. Clona il repository:
 
 ```bash
 git clone https://github.com/NextStepComo/FastApiRouters.git
 cd FastApiRouters
 ```
 
-2. Activate the virtual environment:
+2. Attiva l'ambiente virtuale:
 
 ```bash
 source venv_FastApiRouters/bin/activate
 ```
 
-3. Ensure the PostgreSQL database `nextStepDB` is available with the following tables:
+3. Assicurati che il database PostgreSQL `nextStepDB` sia disponibile con le seguenti tabelle:
 
-- `usersDB` — user accounts
-- `questions` — quiz questions
-- `answers` — user quiz responses
-- `scuole` — Italian school records (with `indirizzi_scolastici` JSONB column)
+- `usersDB` — account utenti
+- `questions` — domande del quiz
+- `answers` — risposte degli utenti
+- `scuole` — dati delle scuole italiane (con colonna JSONB `indirizzi_scolastici`)
+
+4. Per la funzionalità chat AI, installa [Ollama](https://ollama.ai/) e scarica il modello:
+
+```bash
+ollama pull gemma4:e2b
+```
 
 ---
 
-## Running the Server
+## Avvio del Server
 
 ```bash
 fastapi dev --host 0.0.0.0
 ```
 
-The API will be available at `http://0.0.0.0:8000`.
+L'API sarà disponibile su `http://0.0.0.0:8000`.
 
-Interactive documentation (Swagger UI) is available at `http://0.0.0.0:8000/docs`.
+Documentazione interattiva (Swagger UI): `http://0.0.0.0:8000/docs`.
 
 ---
 
-## Project Structure
+## Struttura del Progetto
 
 ```
 FastApiRouters/
-├── main.py                              # FastAPI application entry point
-├── hash_password.py                     # Password hashing utilities
-├── routerOAuth2/                        # API routers package
-│   ├── root_r.py                        # Aggregator router
-│   ├── auth/                            # Authentication module
-│   │   ├── router.py                    # Auth endpoints
-│   │   ├── utils.py                     # JWT, DB, password utilities
-│   │   └── model.py                     # Pydantic models
-│   └── dataAcquisition/                 # Data acquisition module
-│       ├── router.py                    # Data endpoints
-│       ├── utils.py                     # DB query utilities
-│       └── model.py                     # Pydantic models
-├── aggiungi_nomi.py                     # Script: disambiguate school names
-├── elimina_duplicate.py                 # Script: remove duplicate schools
-├── indirizzi_particolari.py             # Script: manual address fixes
-├── merge_scuole.py                      # Script: merge schools into JSONB
-├── standard_indirizzi.py               # Script: normalize school types
+├── main.py                              # Punto di ingresso FastAPI
+├── hash_password.py                     # Utility per hashing password
+├── chiamata_ollama.py                   # Script standalone per testare Ollama
+├── routerOAuth2/                        # Package router API
+│   ├── root_r.py                        # Router aggregatore
+│   ├── auth/                            # Modulo autenticazione
+│   │   ├── router.py                    # Endpoint auth
+│   │   ├── utils.py                     # Utility JWT, DB, password
+│   │   └── model.py                     # Modelli Pydantic
+│   └── dataAcquisition/                 # Modulo acquisizione dati
+│       ├── router.py                    # Endpoint dati e chat AI
+│       ├── utils.py                     # Utility query DB e chiamate Ollama
+│       └── model.py                     # Modelli Pydantic
+├── aggiungi_nomi.py                     # Script: disambiguazione nomi scuole
+├── elimina_duplicate.py                 # Script: rimozione duplicati
+├── indirizzi_particolari.py             # Script: correzioni manuali indirizzi
+├── merge_scuole.py                      # Script: merge scuole in JSONB
+├── standard_indirizzi.py               # Script: normalizzazione tipi scuola
 └── README.md
 ```
 
@@ -88,131 +97,149 @@ FastApiRouters/
 
 ## API Endpoints
 
-### Authentication
+### Autenticazione
 
-All auth endpoints are prefixed with `/` (root-level).
+Tutti gli endpoint di autenticazione sono prefissati con `/`.
 
-| Method | Path                | Description                          |
-|--------|---------------------|--------------------------------------|
-| POST   | `/login`            | Authenticate user, return JWT tokens |
-| POST   | `/register`         | Register a new user                  |
-| POST   | `/refresh`          | Refresh expired access token         |
-| GET    | `/users/me/`        | Get current user profile             |
-| GET    | `/users/me/quiz`    | Get quiz completion status           |
-| POST   | `/quizCompletato`   | Mark quiz as completed               |
+| Metodo | Path                | Descrizione                              |
+|--------|---------------------|------------------------------------------|
+| POST   | `/login`            | Autentica utente, restituisce token JWT  |
+| POST   | `/register`         | Registra un nuovo utente                 |
+| POST   | `/refresh`          | Rinnova il token di accesso scaduto      |
+| GET    | `/users/me/`        | Ottiene il profilo dell'utente corrente  |
+| GET    | `/users/me/quiz`    | Ottiene lo stato di completamento quiz   |
+| POST   | `/quizCompletato`   | Segna il quiz come completato            |
 
 #### `POST /login`
 
-Authenticates a user with username and password.
+Autentica un utente con username e password.
 
-- **Request body**: `application/x-www-form-urlencoded` with `username` and `password` fields (standard OAuth2 password flow).
-- **Response**: `Token` object containing `access_token`, `refresh_token`, and `token_type`.
+- **Corpo richiesta**: `application/x-www-form-urlencoded` con campi `username` e `password` (flusso OAuth2 standard).
+- **Risposta**: Oggetto `Token` con `access_token`, `refresh_token`, `token_type`.
 
 #### `POST /register`
 
-Creates a new user account.
+Crea un nuovo account utente.
 
-- **Request body**: JSON with `username`, `full_name`, `quizsolved`, `date_birth`, `password`.
-- **Response**: `Token` object.
+- **Corpo richiesta**: JSON con `username`, `full_name`, `quizsolved`, `date_birth`, `password`.
+- **Risposta**: Oggetto `Token`.
 
 #### `POST /refresh`
 
-Issues a new access/refresh token pair.
+Emette una nuova coppia di token di accesso e refresh.
 
-- **Request body**: JSON with `refresh_token` string.
-- **Response**: New `Token` object.
+- **Corpo richiesta**: JSON con campo `refresh_token`.
+- **Risposta**: Nuovo oggetto `Token`.
 
 #### `GET /users/me/`
 
-Returns the authenticated user's profile. Requires a valid Bearer token.
+Restituisce il profilo dell'utente autenticato. Richiede token Bearer valido.
 
 - **Auth**: Bearer token (JWT access token).
-- **Response**: `User` object with `userID`, `username`, `full_name`, `quizsolved`, `date_birth`.
+- **Risposta**: Oggetto `User` con `userID`, `username`, `full_name`, `quizsolved`, `date_birth`.
 
 #### `GET /users/me/quiz`
 
-Returns the authenticated user's `quizsolved` status. Requires a valid Bearer token.
+Restituisce il campo `quizsolved` dell'utente autenticato. Richiede token Bearer valido.
 
 #### `POST /quizCompletato`
 
-Marks the current user's quiz as completed (`quizsolved = true`). Requires a valid Bearer token.
+Imposta `quizsolved = true` per l'utente corrente. Richiede token Bearer valido.
 
 ---
 
-### Data Acquisition
+### Acquisizione Dati
 
-All data endpoints are prefixed with `/acquire`.
+Tutti gli endpoint di acquisizione dati sono prefissati con `/acquire`.
 
-| Method | Path                                  | Description                    |
-|--------|---------------------------------------|--------------------------------|
-| POST   | `/acquire/quizResponses`              | Submit a quiz answer           |
-| GET    | `/acquire/quizQuestions`              | Get a quiz question by ID      |
-| GET    | `/acquire/scuolePosizione`            | Get schools by province        |
+| Metodo | Path                                  | Descrizione                            |
+|--------|---------------------------------------|----------------------------------------|
+| POST   | `/acquire/quizResponses`              | Invia una risposta al quiz             |
+| GET    | `/acquire/quizQuestions`              | Ottiene una domanda del quiz per ID    |
+| GET    | `/acquire/scuolePosizione`            | Ottiene le scuole per provincia        |
 
 #### `POST /acquire/quizResponses`
 
-Stores or updates a quiz answer.
+Salva o aggiorna una risposta al quiz.
 
-- **Request body**: JSON with `userID` (int), `domanda` (int), `risposta` (int).
-- **Response**: `{"status": "success"}`.
+- **Corpo richiesta**: JSON con `userID` (int), `domanda` (int), `risposta` (int).
+- **Risposta**: `{"status": "success"}`.
 
 #### `GET /acquire/quizQuestions`
 
-Fetches a single quiz question and its answers.
+Recupera una domanda del quiz con le relative risposte.
 
-- **Query parameters**: `q` (int) — question ID.
-- **Response**: Question data including associated answers.
+- **Parametri query**: `q` (int) — ID della domanda.
+- **Risposta**: Dati della domanda incluse le risposte associate.
 
 #### `GET /acquire/scuolePosizione`
 
-Fetches schools filtered by province.
+Recupera le scuole filtrate per provincia.
 
-- **Query parameters**: `provincia` (string) — province code. Use `XX` to return all schools.
-- **Response**: List of schools with name, address, coordinates, contacts, and aggregated course offerings.
+- **Parametri query**: `provincia` (string) — codice provincia. Usa `XX` per ottenere tutte le scuole.
+- **Risposta**: Elenco di scuole con nome, indirizzo, coordinate, contatti e corsi aggregati.
+
+---
+
+### Chat AI
+
+| Metodo | Path                | Descrizione                              |
+|--------|---------------------|------------------------------------------|
+| POST   | `/acquire/chat`     | Invia un messaggio all'assistente AI     |
+
+#### `POST /acquire/chat`
+
+Invia un messaggio testuale al modello AI locale (Gemma 4 tramite Ollama) e riceve una risposta.
+
+- **Corpo richiesta**: JSON con `inputText` (string) — il messaggio dell'utente.
+- **Risposta**: Testo della risposta generata dal modello AI.
+- **Ruolo sistema**: L'assistente AI è configurato come supporto all'orientamento scolastico per studenti delle medie, rispondendo in italiano in modo conciso e semplice.
+- **Modello**: `gemma4:e2b` con temperatura 0.7 e top_p 0.9.
 
 ---
 
 ## Database
 
-The application connects to a local PostgreSQL database (`nextStepDB`) with credentials:
+L'applicazione si connette a un database PostgreSQL locale (`nextStepDB`) con le seguenti credenziali:
 
 - **Host**: `localhost:5432`
-- **User**: `postgres`
+- **Utente**: `postgres`
 - **Password**: `password`
 
-### Key Tables
+### Tabelle Principali
 
-| Table       | Description                                  |
-|-------------|----------------------------------------------|
-| `usersDB`   | User accounts (`userid`, `username`, `full_name`, `hashed_password`, `quizsolved`, `date_birth`) |
-| `questions` | Quiz questions (`q_id`, question text, answers) |
-| `answers`   | User responses (`user_id`, `q_id`, `risp_id`) |
-| `scuole`    | Italian school records with `indirizzi_scolastici` (JSONB) column storing an array of course offerings |
+| Tabella     | Descrizione                                                      |
+|-------------|------------------------------------------------------------------|
+| `usersDB`   | Account utenti (`userid`, `username`, `full_name`, `hashed_password`, `quizsolved`, `date_birth`) |
+| `questions` | Domande del quiz (`q_id`, testo domanda, risposte)               |
+| `answers`   | Risposte degli utenti (`user_id`, `q_id`, `risp_id`)             |
+| `scuole`    | Record delle scuole italiane con colonna `indirizzi_scolastici` (JSONB) contenente un array di offerte formative |
 
-### Authentication Flow
+### Flusso di Autenticazione
 
-1. User registers via `POST /register` — password is hashed with **Argon2** (via `pwdlib`) and stored in `usersDB`.
-2. User logs in via `POST /login` — credentials are verified, and a JWT **access token** (30-minute expiry) and **refresh token** (7-day expiry) are returned.
-3. Protected endpoints require the access token in the `Authorization: Bearer <token>` header.
-4. When the access token expires, the client can use `POST /refresh` with the refresh token to obtain a new pair.
+1. L'utente si registra tramite `POST /register` — la password viene hashata con **Argon2** (tramite `pwdlib`) e salvata in `usersDB`.
+2. L'utente effettua il login tramite `POST /login` — le credenziali vengono verificate e vengono restituiti un **access token** JWT (scadenza 30 minuti) e un **refresh token** (scadenza 7 giorni).
+3. Gli endpoint protetti richiedono l'access token nell'header `Authorization: Bearer <token>`.
+4. Quando l'access token scade, il client può usare `POST /refresh` con il refresh token per ottenere una nuova coppia.
 
 ---
 
-## Maintenance Scripts
+## Script di Manutenzione
 
-Standalone Python scripts for database maintenance and data normalization. Each script connects directly to `nextStepDB` and performs a specific transformation.
+Script Python standalone per la manutenzione e normalizzazione del database. Ogni script si connette direttamente a `nextStepDB` ed esegue una trasformazione specifica.
 
-| Script                    | Description                                                     |
-|---------------------------|-----------------------------------------------------------------|
-| `aggiungi_nomi.py`        | Disambiguates schools with identical names by appending the city name in parentheses |
-| `elimina_duplicate.py`    | Removes duplicate school rows keeping only the first occurrence |
-| `indirizzi_particolari.py`| Applies manual address name normalizations (e.g., `L. Sportivo` → `L. Scientifico ad indirizzo Sportivo`) |
-| `merge_scuole.py`         | Groups schools by physical location and aggregates course offerings into a JSONB array (`indirizzi_scolastici`) |
-| `standard_indirizzi.py`   | Normalizes school type abbreviations (e.g., `L. Scient` → `L. Scientifico`, `I.P. Agr` → `I.P. Agrario`) |
+| Script                    | Descrizione                                                           |
+|---------------------------|-----------------------------------------------------------------------|
+| `aggiungi_nomi.py`        | Disambigua scuole con nomi identici aggiungendo il comune tra parentesi |
+| `elimina_duplicate.py`    | Rimuove righe duplicate dalla tabella `scuole` mantenendo la prima occorrenza |
+| `indirizzi_particolari.py`| Applica normalizzazioni manuali ai nomi degli indirizzi (es. `L. Sportivo` → `L. Scientifico ad indirizzo Sportivo`) |
+| `merge_scuole.py`         | Raggruppa scuole per sede fisica e aggrega le offerte formative in un array JSONB (`indirizzi_scolastici`) |
+| `standard_indirizzi.py`   | Normalizza le abbreviazioni dei tipi di scuola (es. `L. Scient` → `L. Scientifico`, `I.P. Agr` → `I.P. Agrario`) |
+| `chiamata_ollama.py`      | Script di test per verificare il funzionamento di Ollama con il modello Gemma 4 |
 
-### Usage
+### Utilizzo
 
-Activate the virtual environment and run any script directly:
+Attiva l'ambiente virtuale ed esegui qualsiasi script direttamente:
 
 ```bash
 source venv_FastApiRouters/bin/activate
@@ -221,24 +248,25 @@ python merge_scuole.py
 
 ---
 
-## Development
+## Sviluppo
 
-### Adding New Endpoints
+### Aggiungere Nuovi Endpoint
 
-1. Create or extend a router module under `routerOAuth2/`.
-2. Define Pydantic models in `model.py`.
-3. Implement database utilities in `utils.py`.
-4. Register the router in `root_r.py`.
+1. Crea o estendi un modulo router sotto `routerOAuth2/`.
+2. Definisci i modelli Pydantic in `model.py`.
+3. Implementa le utility per il database in `utils.py`.
+4. Registra il router in `root_r.py`.
 
-### Dependencies
+### Dipendenze
 
-The virtual environment (`venv_FastApiRouters/`) contains all required packages, including:
+L'ambiente virtuale (`venv_FastApiRouters/`) contiene tutti i pacchetti richiesti, inclusi:
 
-- **FastAPI** — web framework
-- **Uvicorn** — ASGI server
-- **PyJWT** — JWT encoding/decoding
-- **psycopg2-binary** — PostgreSQL adapter
-- **pwdlib** — password hashing (Argon2)
-- **python-multipart** — form data parsing
-- **email-validator** — email validation
-- **python-dotenv** — environment variable support
+- **FastAPI** — framework web
+- **Uvicorn** — server ASGI
+- **PyJWT** — codifica/decodifica JWT
+- **psycopg2-binary** — adapter PostgreSQL
+- **pwdlib** — hashing password (Argon2)
+- **python-multipart** — parsing form data
+- **email-validator** — validazione email
+- **ollama** — client Python per Ollama
+- **python-dotenv** — supporto file di ambiente
