@@ -1,7 +1,7 @@
 from typing import Annotated
 from fastapi import Depends, APIRouter, HTTPException, status
 from .model import QuizResponse
-from .utils import addQuizResponse, getQuizQuestions, getSchoolPositions, getSchoolPositionsNoProv
+from .utils import addQuizResponse, getQuizQuestions, getSchoolPositions, getSchoolPositionsNoProv, getAIResponse
 
 router = APIRouter(
     prefix="/acquire"
@@ -23,3 +23,7 @@ async def getPositions(provincia: str):
     if provincia is None:
         raise HTTPException(status_code=400, detail="Il parametro 'provincia' (provincia scuole da restituire) è richiesto.")
     return getSchoolPositions(provincia)
+
+@router.post("/chat")
+async def chiamataAI(messaggio: str):
+    return getAIResponse(messaggio)

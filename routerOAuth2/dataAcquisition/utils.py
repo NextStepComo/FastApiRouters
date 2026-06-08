@@ -1,6 +1,7 @@
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from .model import QuizResponse
+import ollama
 
 connection = psycopg2.connect(
     database="nextStepDB",
@@ -125,3 +126,27 @@ def getSchoolPositionsNoProv():
     except Exception as e:
         connection.rollback()
         raise e
+    
+def getAIResponse(messaggio: str):
+    try:
+        response = ollama.chat(
+            model='gemma4:e2b',
+            messages=[
+                {
+                    'role': 'system',
+                    'content': 'Sei un assistente all\' orientamento di studenti delle medie nella scelta della scuola. Rispondi in italiano, in modo conciso e semplice.'
+                },
+                {
+                    'role': 'user',
+                    'content': messaggio
+                }
+            ],
+            options={
+                'temperature': 0.7,
+                'top_p': 0.9
+            }
+        )
+        
+        return response['message']['content'] 
+    except Exception as e:
+        return(f"Errore durante la chiamata: {e}")
