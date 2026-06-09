@@ -26,5 +26,4 @@ async def getPositions(provincia: str):
 
 @router.post("/chat")
 async def chiamataAI(richiesta: ChatRequest):
-    print("Ricevuto:", richiesta)  # aggiungi questo
     return getAIResponse(richiesta.inputText)

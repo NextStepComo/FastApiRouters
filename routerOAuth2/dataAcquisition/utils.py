@@ -31,12 +31,32 @@ def addQuizResponse(data: QuizResponse):
 
 def getQuizQuestions(q_ID: int):
     cursor = connection.cursor(cursor_factory=RealDictCursor)
-    SQLquery = "SELECT * FROM questions WHERE q_id = %s;"
+    SQLquery = """
+        SELECT 
+            q.q_id, 
+            q.q_text, 
+            o.r_id, 
+            o.titolo, 
+            o.descrizione
+        FROM questions q
+        JOIN opzioni_risposte o ON q.q_id = o.q_id
+        WHERE q.q_id = %s;
+    """
     cursor.execute(SQLquery, (q_ID,))
-    
-    q_ans = cursor.fetchone()
+    rows = cursor.fetchall()
     cursor.close()
-    return q_ans
+    quiz_data = {
+        "q_id": rows[0]["q_id"],
+        "q_text": rows[0]["q_text"],
+        "ans_text": []
+    }
+    for row in rows:
+        quiz_data["ans_text"].append({
+            "r_id": row["r_id"],
+            "titolo": row["titolo"],
+            "descrizione": row["descrizione"]
+        })
+    return quiz_data
 
 def getSchoolPositions(provincia: str):
     try:
